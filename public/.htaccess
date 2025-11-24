@@ -1,17 +1,6 @@
 <IfModule mod_rewrite.c>
 RewriteEngine On
-
-# Keep API requests going to PHP
-RewriteCond %{REQUEST_URI} ^/api
-RewriteRule ^ - [L]
-
-# Allow files to load normally
-RewriteCond %{REQUEST_FILENAME} -f
-RewriteRule ^ - [L]
-
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
-
-# Send everything else to Vue index.html
-RewriteRule ^ index.html [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php/$1 [L]
 </IfModule>
