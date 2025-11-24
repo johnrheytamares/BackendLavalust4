@@ -1,13 +1,25 @@
 FROM php:8.2-apache
 
-# Install PDO MySQL
-RUN docker-php-ext-install pdo pdo_mysql
+# Install system deps + PHP extensions (PDO MySQL + others for LavaLust)
+RUN apt-get update && apt-get install -y \
+    libzip-dev \
+    unzip \
+    && docker-php-ext-install pdo pdo_mysql zip
 
-# Enable Apache mod_rewrite
+# Enable Apache mod_rewrite (for routes)
 RUN a2enmod rewrite
+
+# Install Composer globally
+RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
+    && php composer-setup.php --install-dir=/usr/local/bin --filename=composer \
+    && rm composer-setup.php
 
 # Copy app files
 COPY . /var/www/html/
+
+# Install Composer dependencies (add this!)
+WORKDIR /var/www/html
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Set document root to public/
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
@@ -22,7 +34,7 @@ RUN sed -ri \
     /etc/apache2/apache2.conf \
     /etc/apache2/conf-available/*.conf
 
-# Permissions
+# Permissions (good as is)
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html
 
