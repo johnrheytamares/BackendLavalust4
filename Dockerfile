@@ -17,21 +17,28 @@ RUN php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');" \
 # Copy application files
 COPY . /var/www/html/
 
-# Install Composer dependencies
+# Set working directory
 WORKDIR /var/www/html
+
+# Install Composer dependencies
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Set Apache document root
+# Set Apache document root to public/
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 
-# Rewrite Apache vhost to use /public
+# Update Apache vhost to use /public
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf
 
-# Fix Directory settings in apache2.conf
-RUN sed -i 's!/var/www/!/var/www/html/public/!g' /etc/apache2/apache2.conf
+# Allow .htaccess overrides
+RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
 
-# Set permissions
+# Set proper permissions
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html
 
-EXPOSE 80
+# Configure Apache to listen on Render's dynamic port
+ENV PORT 10000
+RUN sed -i "s/Listen 80/Listen ${PORT}/" /etc/apache2/ports.conf
+
+# Start Apache in the foreground
+CMD ["apache2-foreground"]
